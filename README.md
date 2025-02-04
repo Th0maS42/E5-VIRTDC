@@ -234,8 +234,6 @@ spec:
 
 ```
 
-
-
 <!-- GETTING STARTED -->
 
 ### Pour déployer les applications:
@@ -251,6 +249,19 @@ k create -f "nom du fichier.yaml"
 ``` bash
 k get all
 ```
+Maintenant que nos pods sont prêt nous allons faire un test de charge avec k6
+![alt text](Images/k6_test.jpg)
+Nous voyons nos pods entrain de ce crée
+![alt text](Images/container_create.jpg)
+Puis nos pods sont prêts
+![alt text](Images/before_scaling.jpg)
+Quand nous lançons le test de charge l'application s'adapte
+![alt text](Images/in_scaling.jpg)
+Puis elle redescend lorsque le pic est passé
+![alt text](Images/end_scaling.jpg)
 
-
+Nous voyons par la suite un test de l'API de Stripe
+![alt text](Images/Page_checkout.jpg)
+Et la page d'achat
+![alt text](Images/Buy_stripe.jpg)
 <p align="right"><a href="#readme-top">back to top</a></p>
