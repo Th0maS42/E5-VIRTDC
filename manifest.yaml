@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: privrocket-preprod
+  labels:
+    name: privrocket-preprod
+    app: privrocket
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: privrocket-app-configmap
+  namespace: privrocket-preprod
+data:
+  DEMO_MODE: "True"
+  DEBUG: "True"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: privrocket-deployment
+  namespace: privrocket-preprod
+  labels:
+    app: privrocket-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: privrocket-app
+  template:
+    metadata:
+      labels:
+        app: privrocket-app
+    spec:
+      containers:
+      - name: privrocket-app 
+        image: th0m8s/priv-rocket-ecommerce-main:prod
+        ports:
+          - containerPort: 80
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 100m
+          limits:
+            memory: 128Mi
+            cpu: 200m  
+        envFrom:
+        - configMapRef:
+            # nom de la configMap
+            name: privrocket-app-configmap
+        env:
+          # nom de la variable qui sera injectée
+          - name: STRIPE_PUBLISHABLE_KEY
+            valueFrom:
+              secretKeyRef:
+                # nom de l'objet secret
+                name: stripe-secret
+                # nom du secret précis
+                key: STRIPE_PUBLISHABLE_KEY
+          - name: STRIPE_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: stripe-secret
+                key: STRIPE_SECRET_KEY
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: stripe-secret
+type: Opaque
+stringData:
+  STRIPE_PUBLISHABLE_KEY: pk_test_51QhZXSRvHxyjSySQorUMA1T2d5ZlvGWg1SX8CErNy8e3MelMghenIZG9ZPrdv4kxXtadCfbv3oBKvcDTBTU0xFA200t7v2PYl3
+  STRIPE_SECRET_KEY: sk_test_51QhZXSRvHxyjSySQ51yiCCUlq1pdwyKJjhUKtGZg1oBpAtiQuhoL65ZeGWy4r60TVCrYUw2rHeEgpR4RUi4aYJM600JtWIBO3M
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: privrocket-deployment
+  labels:
+    app: privrocket-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: privrocket-app
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-privrocketapp
+  # namespace: privrocket-preprod
+spec:
+  defaultBackend:
+    service:
+      name: privrocket-service
+      port:
+        number: 7777
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: horizontal-pod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: privrocket-deployment
+  minReplicas: 1
+  maxReplicas: 50
+  behavior:
+    scaleUp:
+      # scale up immediat
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 5
+      - type: Pods
+        value: 4
+        periodSeconds: 5
+      selectPolicy: Max
+    scaleDown:
+      # 300 par defaut, donc 5 min avant scale down
+      stabilizationWindowSeconds: 5
+      policies:
+      # type : Pods ou Percent
+      - type: Percent
+        # enleve 50% des pods
+        value: 50
+        # Toutes les 5s. Période max 30min (1800s)
+        periodSeconds: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+status:
+  observedGeneration: 1
+  currentReplicas: 1
+  desiredReplicas: 1
+  currentMetrics:
+  - type: Resource
+    resource:
+      name: cpu
+      current:
+        averageUtilization: 0
+        averageValue: 0
