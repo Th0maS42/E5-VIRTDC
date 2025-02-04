@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stripe-flask-app
+  labels:
+    app: stripe-flask-app
+spec:
+  selector:
+    matchLabels:
+      app: stripe-flask-app
+  template:
+    metadata:
+      labels:
+        app: stripe-flask-app
+    spec:
+      containers:
+      - name: stripe-flask-app 
+        image: th0m8s/stripe-app:prod
+        ports:
+          - containerPort: 4242
+        resources:
+          requests:
+            memory: 64Mi
+            cpu: 100m
+          limits:
+            memory: 128Mi
+            cpu: 200m  
+        env:
+          # nom de la variable qui sera injectée
+          - name: STRIPE_PUBLISHABLE_KEY
+            valueFrom:
+              secretKeyRef:
+                # nom de l'objet secret
+                name: stripe-secret-app
+                # nom du secret précis
+                key: STRIPE_PUBLISHABLE_KEY
+          - name: STRIPE_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: stripe-secret-app
+                key: STRIPE_SECRET_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stripe-flask-service
+spec:
+  type: NodePort
+  selector:
+    app: stripe-flask-app
+  ports:
+    - port: 4242
+      protocol: TCP
+      targetPort: 4242
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: stripe-secret-app
+type: Opaque
+stringData:
+  STRIPE_PUBLISHABLE_KEY: pk_test_51QhZXSRvHxyjSySQorUMA1T2d5ZlvGWg1SX8CErNy8e3MelMghenIZG9ZPrdv4kxXtadCfbv3oBKvcDTBTU0xFA200t7v2PYl3
+  STRIPE_SECRET_KEY: sk_test_51QhZXSRvHxyjSySQ51yiCCUlq1pdwyKJjhUKtGZg1oBpAtiQuhoL65ZeGWy4r60TVCrYUw2rHeEgpR4RUi4aYJM600JtWIBO3M
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stripe-checkout-ingress
+spec:
+  defaultBackend:
+    service:
+      name: stripe-flask-service
+      port:
+        number: 7777
