@@ -252,7 +252,7 @@ k get all
 Maintenant que nos pods sont prêt nous allons faire un test de charge avec k6
 ![alt text](Images/k6_test.jpg)
 Nous voyons nos pods entrain de ce crée
-![alt text](Images/container_create.jpg)
+![alt text](Images/Container_create.jpg)
 Puis nos pods sont prêts
 ![alt text](Images/before_scaling.jpg)
 Quand nous lançons le test de charge l'application s'adapte
